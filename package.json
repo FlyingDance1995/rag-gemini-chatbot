@@ -1,0 +1,39 @@
+{
+  "name": "rag-gemini-chatbot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate": "prisma generate",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.7.2",
+    "@google/generative-ai": "^0.21.0",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "@prisma/client": "^5.22.0",
+    "mammoth": "^1.8.0",
+    "next": "^15.0.0",
+    "next-auth": "^5.0.0-beta.25",
+    "pdf-parse": "^1.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.47",
+    "postcss-load-config": "3.1.4",
+    "prisma": "^5.22.0",
+    "tailwindcss": "3.3.7",
+    "typescript": "^5.6.3"
+  }
+}
