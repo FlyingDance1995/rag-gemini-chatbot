@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="100" height="100" rx="22" fill="url(#g1)"/>
+  <!-- 4-point star shape -->
+  <path d="M50 18 C50 18 54 38 62 46 C70 54 82 50 82 50 C82 50 70 54 62 62 C54 70 50 82 50 82 C50 82 46 70 38 62 C30 54 18 50 18 50 C18 50 30 46 38 38 C46 30 50 18 50 18Z" fill="white" opacity="0.95"/>
+  <!-- Small accent star -->
+  <path d="M76 24 C76 24 77.5 30 80 32.5 C82.5 35 88 34 88 34 C88 34 82.5 35 80 37.5 C77.5 40 76 46 76 46 C76 46 74.5 40 72 37.5 C69.5 35 64 34 64 34 C64 34 69.5 35 72 32.5 C74.5 30 76 24 76 24Z" fill="white" opacity="0.7"/>
+</svg>

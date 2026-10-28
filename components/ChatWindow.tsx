@@ -147,7 +147,7 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 pt-16 md:pt-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
             <div className="text-6xl mb-4">✨</div>
@@ -165,7 +165,7 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
                 G
               </div>
             )}
-            <div className={`max-w-[75%] ${msg.role === "user" ? "order-first" : ""}`}>
+            <div className={`max-w-[85%] md:max-w-[75%] ${msg.role === "user" ? "order-first" : ""}`}>
               <div
                 className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === "user"

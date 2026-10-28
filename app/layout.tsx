@@ -3,8 +3,13 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
-  title: "RAG Gemini Chatbot",
+  title: "DocChat AI — RAG Gemini Chatbot",
   description: "Chat với tài liệu của bạn bằng Gemini AI",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
