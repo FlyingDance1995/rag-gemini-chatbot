@@ -23,6 +23,107 @@ interface ChatWindowProps {
   initialMessages?: Message[];
 }
 
+function MarkdownRenderer({ text }: { text: string }) {
+  // Split thành các block theo double newline
+  const blocks = text.split(/\n{2,}/);
+
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, i) => {
+        const trimmed = block.trim();
+        if (!trimmed) return null;
+
+        // Heading #, ##, ###, ####
+        const h4 = trimmed.match(/^####\s+(.+)/);
+        if (h4) return <p key={i} className="font-semibold text-gray-800 text-sm mt-1">{h4[1]}</p>;
+
+        const h3 = trimmed.match(/^###\s+(.+)/);
+        if (h3) return <p key={i} className="font-bold text-gray-800 text-sm mt-2">{h3[1]}</p>;
+
+        const h2 = trimmed.match(/^##\s+(.+)/);
+        if (h2) return <p key={i} className="font-bold text-gray-900 text-base mt-2">{h2[1]}</p>;
+
+        const h1 = trimmed.match(/^#\s+(.+)/);
+        if (h1) return <p key={i} className="font-bold text-gray-900 text-base mt-2 uppercase tracking-wide">{h1[1]}</p>;
+
+        // Horizontal rule ---
+        if (/^---+$/.test(trimmed)) return <hr key={i} className="border-gray-300 my-1" />;
+
+        // Bullet list
+        const lines = trimmed.split("\n");
+        const isList = lines.every((l) => /^\s*[\*\-]\s/.test(l) || l.trim() === "");
+        if (isList) {
+          return (
+            <ul key={i} className="list-disc list-inside space-y-1 pl-1">
+              {lines.filter(Boolean).map((l, j) => (
+                <li key={j} className="text-sm leading-relaxed">
+                  <InlineMarkdown text={l.replace(/^\s*[\*\-]\s+/, "")} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        // Numbered list
+        const isNumbered = lines.every((l) => /^\s*\d+\.\s/.test(l) || l.trim() === "");
+        if (isNumbered) {
+          return (
+            <ol key={i} className="list-decimal list-inside space-y-1 pl-1">
+              {lines.filter(Boolean).map((l, j) => (
+                <li key={j} className="text-sm leading-relaxed">
+                  <InlineMarkdown text={l.replace(/^\s*\d+\.\s+/, "")} />
+                </li>
+              ))}
+            </ol>
+          );
+        }
+
+        // Code block ```
+        const codeMatch = trimmed.match(/^```[\w]*\n?([\s\S]*?)```$/);
+        if (codeMatch) {
+          return (
+            <pre key={i} className="bg-gray-800 text-green-300 text-xs rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap">
+              {codeMatch[1].trim()}
+            </pre>
+          );
+        }
+
+        // Normal paragraph — có thể nhiều dòng
+        return (
+          <p key={i} className="text-sm leading-relaxed">
+            {lines.map((line, j) => (
+              <span key={j}>
+                {j > 0 && <br />}
+                <InlineMarkdown text={line} />
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function InlineMarkdown({ text }: { text: string }) {
+  // Xử lý inline: **bold**, *italic*, `code`, _(italic)_
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|_[^_]+_)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (/^\*\*(.+)\*\*$/.test(part))
+          return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+        if (/^\*(.+)\*$/.test(part))
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        if (/^`(.+)`$/.test(part))
+          return <code key={i} className="bg-gray-200 text-gray-800 text-xs px-1 py-0.5 rounded font-mono">{part.slice(1, -1)}</code>;
+        if (/^_(.+)_$/.test(part))
+          return <em key={i} className="text-gray-500">{part.slice(1, -1)}</em>;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 function SourcesToggle({ sources }: { sources: SourceRef[] }) {
   const [open, setOpen] = useState(false);
   return (
@@ -204,19 +305,23 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
             )}
             <div className={`max-w-[85%] md:max-w-[75%] ${msg.role === "user" ? "order-first" : ""}`}>
               <div
-                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-sm"
+                    ? "bg-blue-600 text-white rounded-br-sm whitespace-pre-wrap"
                     : "bg-gray-100 text-gray-800 rounded-bl-sm"
                 }`}
               >
-                {msg.content || (loading && msg.role === "assistant" ? (
+                {msg.role === "user" ? (
+                  msg.content
+                ) : msg.content ? (
+                  <MarkdownRenderer text={msg.content} />
+                ) : loading ? (
                   <span className="flex gap-1 items-center">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
                   </span>
-                ) : "")}
+                ) : null}
               </div>
 
               {/* Sources — collapsed by default */}

@@ -44,38 +44,48 @@ export async function retrieve(
   return rows;
 }
 
+// Ngưỡng cosine distance — dưới ngưỡng này coi là "đủ liên quan"
+const RELEVANCE_THRESHOLD = 0.5;
+
 export function buildSources(retrieved: RetrievedChunk[]): SourceRef[] {
-  return retrieved.map((r) => ({
-    documentId: r.documentId,
-    filename: r.filename,
-    chunkId: r.id,
-    snippet: r.content.slice(0, 200),
-    distance: r.distance,
-  }));
+  return retrieved
+    .filter((r) => r.distance <= RELEVANCE_THRESHOLD)
+    .map((r) => ({
+      documentId: r.documentId,
+      filename: r.filename,
+      chunkId: r.id,
+      snippet: r.content.slice(0, 200),
+      distance: r.distance,
+    }));
 }
 
 export function buildPrompt(
   question: string,
   retrieved: RetrievedChunk[]
 ): string {
+  const relevant = retrieved.filter((r) => r.distance <= RELEVANCE_THRESHOLD);
+
   const contextBlock =
-    retrieved.length > 0
-      ? retrieved
-          .map(
-            (r, i) =>
-              `--- Source [${i + 1}] (${r.filename}) ---\n${r.content}`
-          )
+    relevant.length > 0
+      ? relevant
+          .map((r, i) => `--- Tài liệu [${i + 1}]: ${r.filename} ---\n${r.content}`)
           .join("\n\n")
-      : "(No relevant documents found for this user.)";
+      : "(Không có tài liệu liên quan)";
 
-  return `You are a helpful assistant that answers questions based ONLY on the provided context below.
-If the context does not contain enough information to answer the question, say "I don't have enough information in the provided documents to answer this question."
-Always respond in the same language the user is asking in.
+  return `Bạn là trợ lý AI thông minh. Nhiệm vụ của bạn là TRẢ LỜI ĐẦY ĐỦ câu hỏi của người dùng.
 
-Context:
+QUY TẮC BẮT BUỘC:
+1. Luôn trả lời câu hỏi — KHÔNG ĐƯỢC từ chối trả lời với lý do thiếu tài liệu.
+2. Nếu tài liệu có thông tin liên quan → dùng tài liệu làm nguồn chính.
+3. Nếu tài liệu KHÔNG đủ hoặc KHÔNG có thông tin → dùng kiến thức của bạn để trả lời.
+4. Nếu vừa có tài liệu vừa cần kiến thức ngoài → kết hợp cả hai, trả lời hoàn chỉnh.
+5. Trả lời bằng ngôn ngữ của người dùng.
+6. Nếu dùng kiến thức ngoài tài liệu, thêm ghi chú ngắn cuối câu: _(Thông tin này từ kiến thức AI)_
+
+Tài liệu người dùng đã upload:
 ${contextBlock}
 
-Question: ${question}
+Câu hỏi: ${question}
 
-Answer:`;
+Trả lời:`;
 }
