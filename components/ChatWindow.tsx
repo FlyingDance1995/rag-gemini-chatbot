@@ -23,6 +23,43 @@ interface ChatWindowProps {
   initialMessages?: Message[];
 }
 
+function SourcesToggle({ sources }: { sources: SourceRef[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <svg
+          className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`}
+          fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
+        >
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+        <span>
+          {open ? "Ẩn nguồn tham khảo" : `${sources.length} nguồn tham khảo`}
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-1.5 space-y-1.5">
+          {sources.map((s, i) => (
+            <div key={i} className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-medium text-gray-600">📄 {s.filename}</span>
+                <span className="text-gray-400">(score: {(1 - s.distance).toFixed(3)})</span>
+              </div>
+              <p className="text-gray-500 mt-1 line-clamp-2">{s.snippet}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -182,18 +219,9 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
                 ) : "")}
               </div>
 
-              {/* Sources */}
+              {/* Sources — collapsed by default */}
               {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  <p className="text-xs text-gray-400 font-medium">Nguồn tham khảo:</p>
-                  {msg.sources.map((s, i) => (
-                    <div key={i} className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                      <span className="font-medium text-gray-600">📄 {s.filename}</span>
-                      <span className="text-gray-400 ml-2">(score: {(1 - s.distance).toFixed(3)})</span>
-                      <p className="text-gray-500 mt-1 line-clamp-2">{s.snippet}</p>
-                    </div>
-                  ))}
-                </div>
+                <SourcesToggle sources={msg.sources} />
               )}
             </div>
 
