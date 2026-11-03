@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface FileResult {
@@ -34,8 +34,17 @@ export default function DocumentUploader() {
   const [results, setResults] = useState<FileResult[]>([]);
   const [showDetail, setShowDetail] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Đóng tooltip khi click ra ngoài
+  useEffect(() => {
+    if (tooltipIndex === null) return;
+    function handleOutside() { setTooltipIndex(null); }
+    document.addEventListener("click", handleOutside);
+    return () => document.removeEventListener("click", handleOutside);
+  }, [tooltipIndex]);
 
   function addFiles(newFiles: FileList | File[]) {
     if (uploading) return; // block khi đang upload
@@ -89,8 +98,23 @@ export default function DocumentUploader() {
     if (selectedFiles.length === 0) return;
 
     setUploading(true);
-    setResults([]);
     setShowDetail(false);
+
+    // Lọc ra các file rỗng (0 bytes) — thường xảy ra trên iOS khi file chưa download về thiết bị
+    const emptyFiles = selectedFiles.filter((f) => f.size === 0);
+    if (emptyFiles.length > 0) {
+      setResults(
+        emptyFiles.map((f) => ({
+          filename: f.name,
+          status: "failed" as const,
+          reason: "File rỗng hoặc chưa tải về thiết bị. Vui lòng chờ file tải xong rồi thử lại.",
+        }))
+      );
+      setUploading(false);
+      return;
+    }
+
+    setResults([]);
 
     const formData = new FormData();
     for (const file of selectedFiles) {
@@ -269,16 +293,49 @@ export default function DocumentUploader() {
               {results.map((r, i) => (
                 <div
                   key={i}
-                  className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
+                  className={`relative text-sm px-3 py-2 rounded-lg ${
                     r.status === "ok"
                       ? "bg-green-50 text-green-700 border border-green-100"
                       : "bg-red-50 text-red-700 border border-red-100"
                   }`}
                 >
-                  <span>{r.status === "ok" ? "✅" : "❌"}</span>
-                  <span className="font-medium truncate flex-1">{r.filename}</span>
+                  {/* Dòng chính: icon + tên file + nút info (mobile) */}
+                  <div className="flex items-center gap-2">
+                    <span className="flex-shrink-0">{r.status === "ok" ? "✅" : "❌"}</span>
+                    <span className="font-medium truncate flex-1 min-w-0">{r.filename}</span>
+
+                    {/* Nút ⓘ — chỉ hiện trên mobile khi có lỗi */}
+                    {r.status === "failed" && r.reason && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTooltipIndex(tooltipIndex === i ? null : i);
+                        }}
+                        className="flex-shrink-0 sm:hidden w-5 h-5 rounded-full bg-red-200 text-red-700 text-xs font-bold flex items-center justify-center hover:bg-red-300 transition-colors"
+                        aria-label="Xem chi tiết lỗi"
+                      >
+                        i
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Text lỗi: ẩn trên mobile, hiện trên sm+ */}
                   {r.status === "failed" && r.reason && (
-                    <span className="text-xs opacity-75 flex-shrink-0">{r.reason}</span>
+                    <p className="hidden sm:block text-xs opacity-75 mt-0.5 break-words">
+                      {r.reason}
+                    </p>
+                  )}
+
+                  {/* Tooltip lỗi — chỉ hiện trên mobile khi bấm nút ⓘ */}
+                  {r.status === "failed" && r.reason && tooltipIndex === i && (
+                    <div
+                      className="sm:hidden absolute left-0 right-0 top-full mt-1 z-10 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg break-words"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45" />
+                      {r.reason}
+                    </div>
                   )}
                 </div>
               ))}

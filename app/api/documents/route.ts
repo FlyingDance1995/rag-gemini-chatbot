@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
       }
 
       // Validate size
+      if (file.size === 0) {
+        return { filename, status: "failed" as const, reason: "File rỗng (0 bytes). File chưa được tải về thiết bị hoặc bị lỗi.", code: 400 };
+      }
       if (file.size > MAX_FILE_BYTES) {
         return { filename, status: "failed" as const, reason: "File too large (max 10MB)", code: 413 };
       }
