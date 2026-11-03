@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SignOutButton from "./SignOutButton";
+import { useSidebar } from "./SidebarContext";
 
 interface Chat {
   id: string;
@@ -21,7 +22,14 @@ export default function ChatSidebar({ chats, userName, userImage }: ChatSidebarP
   const pathname = usePathname();
   const router = useRouter();
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { registerOpen } = useSidebar();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Đăng ký hàm mở sidebar vào context để MobileHeader có thể gọi
+  useEffect(() => {
+    registerOpen(() => setIsOpen(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleDeleteChat(e: React.MouseEvent, chatId: string) {
     e.preventDefault();
@@ -43,11 +51,11 @@ export default function ChatSidebar({ chats, userName, userImage }: ChatSidebarP
   const sidebarContent = (
     <aside className="w-64 bg-gray-900 text-gray-100 flex flex-col h-full flex-shrink-0">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="p-3 border-b border-gray-700 flex items-center gap-2">
         <Link
           href="/chat"
           onClick={() => setIsOpen(false)}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm font-medium flex-1"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm font-medium flex-1 min-w-0"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" className="w-5 h-5 flex-shrink-0">
             <defs>
@@ -61,12 +69,12 @@ export default function ChatSidebar({ chats, userName, userImage }: ChatSidebarP
             <path d="M50 18 C50 18 54 38 62 46 C70 54 82 50 82 50 C82 50 70 54 62 62 C54 70 50 82 50 82 C50 82 46 70 38 62 C30 54 18 50 18 50 C18 50 30 46 38 38 C46 30 50 18 50 18Z" fill="white" opacity="0.95"/>
             <path d="M76 24 C76 24 77.5 30 80 32.5 C82.5 35 88 34 88 34 C88 34 82.5 35 80 37.5 C77.5 40 76 46 76 46 C76 46 74.5 40 72 37.5 C69.5 35 64 34 64 34 C64 34 69.5 35 72 32.5 C74.5 30 76 24 76 24Z" fill="white" opacity="0.7"/>
           </svg>
-          <span>Cuộc trò chuyện mới</span>
+          <span className="truncate">Cuộc trò chuyện mới</span>
         </Link>
         {/* Close button — mobile only */}
         <button
           onClick={() => setIsOpen(false)}
-          className="ml-2 md:hidden p-2 text-gray-400 hover:text-white rounded-lg"
+          className="flex-shrink-0 md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
           aria-label="Đóng sidebar"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -139,17 +147,6 @@ export default function ChatSidebar({ chats, userName, userImage }: ChatSidebarP
       <div className="hidden md:flex h-full">
         {sidebarContent}
       </div>
-
-      {/* Mobile: hamburger button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-40 p-2.5 bg-gray-900 text-white rounded-lg shadow-lg"
-        aria-label="Mở menu"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
 
       {/* Mobile: overlay backdrop */}
       {isOpen && (

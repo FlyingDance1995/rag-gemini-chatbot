@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ChatSidebar from "@/components/ChatSidebar";
+import { SidebarProvider } from "@/components/SidebarContext";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +28,15 @@ export default async function ChatLayout({
   }));
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      <ChatSidebar
-        chats={serializedChats}
-        userName={session.user.name}
-        userImage={session.user.image}
-      />
-      <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden bg-white">
+        <ChatSidebar
+          chats={serializedChats}
+          userName={session.user.name}
+          userImage={session.user.image}
+        />
+        <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+      </div>
+    </SidebarProvider>
   );
 }

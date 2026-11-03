@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSidebar } from "./SidebarContext";
 
 interface SourceRef {
   documentId: string;
@@ -169,6 +170,7 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+  const { openSidebar } = useSidebar();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -284,8 +286,25 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
 
   return (
     <div className="flex flex-col h-full">
+      {/* Mobile sticky header — chỉ hiện trên mobile */}
+      <header className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-gray-200 bg-white sticky top-0 z-30 flex-shrink-0">
+        <button
+          onClick={openSidebar}
+          className="p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          aria-label="Mở menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex-shrink-0" />
+          <span className="text-sm font-semibold text-gray-800 truncate">RAG Gemini Chatbot</span>
+        </div>
+      </header>
+
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 pt-16 md:pt-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
             <div className="text-6xl mb-4">✨</div>
