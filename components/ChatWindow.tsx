@@ -371,7 +371,7 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
                 autoResize();
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Nhập câu hỏi về tài liệu của bạn..."
+              placeholder="Nhập câu hỏi..."
               rows={1}
               className="flex-1 bg-transparent resize-none outline-none text-sm text-gray-800 placeholder-gray-400 max-h-48"
             />
