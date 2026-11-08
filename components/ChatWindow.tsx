@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "./SidebarContext";
 
@@ -25,84 +25,177 @@ interface ChatWindowProps {
 }
 
 function MarkdownRenderer({ text }: { text: string }) {
-  // Split thành các block theo double newline
-  const blocks = text.split(/\n{2,}/);
+  // Parse text line-by-line thành các token, sau đó group lại thành blocks
+  const lines = text.split("\n");
 
-  return (
-    <div className="space-y-2">
-      {blocks.map((block, i) => {
-        const trimmed = block.trim();
-        if (!trimmed) return null;
+  type Token =
+    | { type: "h1" | "h2" | "h3" | "h4"; content: string }
+    | { type: "hr" }
+    | { type: "bullet"; content: string; depth: number }
+    | { type: "numbered"; content: string; num: number }
+    | { type: "code_block"; content: string }
+    | { type: "blank" }
+    | { type: "text"; content: string };
 
-        // Heading #, ##, ###, ####
-        const h4 = trimmed.match(/^####\s+(.+)/);
-        if (h4) return <p key={i} className="font-semibold text-gray-800 text-sm mt-1">{h4[1]}</p>;
+  const tokens: Token[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
 
-        const h3 = trimmed.match(/^###\s+(.+)/);
-        if (h3) return <p key={i} className="font-bold text-gray-800 text-sm mt-2">{h3[1]}</p>;
+    // Code block
+    if (/^```/.test(trimmed)) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i].trim())) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      tokens.push({ type: "code_block", content: codeLines.join("\n") });
+      i++; // skip closing ```
+      continue;
+    }
 
-        const h2 = trimmed.match(/^##\s+(.+)/);
-        if (h2) return <p key={i} className="font-bold text-gray-900 text-base mt-2">{h2[1]}</p>;
+    // Headings (ATX style)
+    const h4 = trimmed.match(/^####\s+(.*)/);
+    if (h4) { tokens.push({ type: "h4", content: h4[1] }); i++; continue; }
+    const h3 = trimmed.match(/^###\s+(.*)/);
+    if (h3) { tokens.push({ type: "h3", content: h3[1] }); i++; continue; }
+    const h2 = trimmed.match(/^##\s+(.*)/);
+    if (h2) { tokens.push({ type: "h2", content: h2[1] }); i++; continue; }
+    const h1 = trimmed.match(/^#\s+(.*)/);
+    if (h1) { tokens.push({ type: "h1", content: h1[1] }); i++; continue; }
 
-        const h1 = trimmed.match(/^#\s+(.+)/);
-        if (h1) return <p key={i} className="font-bold text-gray-900 text-base mt-2 uppercase tracking-wide">{h1[1]}</p>;
+    // Horizontal rule (--- or ***)
+    if (/^(-{3,}|\*{3,})$/.test(trimmed)) {
+      tokens.push({ type: "hr" });
+      i++;
+      continue;
+    }
 
-        // Horizontal rule ---
-        if (/^---+$/.test(trimmed)) return <hr key={i} className="border-gray-300 my-1" />;
+    // Bullet list — chỉ match khi bắt đầu bằng "- " hoặc "* " (có space sau)
+    // Tránh nhầm **bold** với bullet
+    const bulletMatch = line.match(/^(\s*)[-*]\s+(.*)/);
+    if (bulletMatch && !/^\*\*/.test(trimmed)) {
+      const depth = Math.floor(bulletMatch[1].length / 2);
+      tokens.push({ type: "bullet", content: bulletMatch[2], depth });
+      i++;
+      continue;
+    }
 
-        // Bullet list
-        const lines = trimmed.split("\n");
-        const isList = lines.every((l) => /^\s*[\*\-]\s/.test(l) || l.trim() === "");
-        if (isList) {
-          return (
-            <ul key={i} className="list-disc list-inside space-y-1 pl-1">
-              {lines.filter(Boolean).map((l, j) => (
-                <li key={j} className="text-sm leading-relaxed">
-                  <InlineMarkdown text={l.replace(/^\s*[\*\-]\s+/, "")} />
-                </li>
-              ))}
-            </ul>
-          );
-        }
+    // Numbered list
+    const numMatch = line.match(/^(\s*)\d+\.\s+(.*)/);
+    if (numMatch) {
+      const num = parseInt(line.match(/\d+/)![0]);
+      tokens.push({ type: "numbered", content: numMatch[2], num });
+      i++;
+      continue;
+    }
 
-        // Numbered list
-        const isNumbered = lines.every((l) => /^\s*\d+\.\s/.test(l) || l.trim() === "");
-        if (isNumbered) {
-          return (
-            <ol key={i} className="list-decimal list-inside space-y-1 pl-1">
-              {lines.filter(Boolean).map((l, j) => (
-                <li key={j} className="text-sm leading-relaxed">
-                  <InlineMarkdown text={l.replace(/^\s*\d+\.\s+/, "")} />
-                </li>
-              ))}
-            </ol>
-          );
-        }
+    // Blank line
+    if (!trimmed) {
+      tokens.push({ type: "blank" });
+      i++;
+      continue;
+    }
 
-        // Code block ```
-        const codeMatch = trimmed.match(/^```[\w]*\n?([\s\S]*?)```$/);
-        if (codeMatch) {
-          return (
-            <pre key={i} className="bg-gray-800 text-green-300 text-xs rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap">
-              {codeMatch[1].trim()}
-            </pre>
-          );
-        }
+    // Plain text
+    tokens.push({ type: "text", content: trimmed });
+    i++;
+  }
 
-        // Normal paragraph — có thể nhiều dòng
-        return (
-          <p key={i} className="text-sm leading-relaxed">
-            {lines.map((line, j) => (
-              <span key={j}>
-                {j > 0 && <br />}
-                <InlineMarkdown text={line} />
-              </span>
-            ))}
-          </p>
-        );
-      })}
-    </div>
-  );
+  // Render tokens thành JSX, gộp các bullet/numbered liên tiếp lại
+  const elements: React.ReactNode[] = [];
+  let j = 0;
+  while (j < tokens.length) {
+    const tok = tokens[j];
+
+    if (tok.type === "blank") { j++; continue; }
+
+    if (tok.type === "h1") {
+      elements.push(<p key={j} className="font-bold text-gray-900 text-base mt-3 mb-1 uppercase tracking-wide"><InlineMarkdown text={tok.content} /></p>);
+      j++; continue;
+    }
+    if (tok.type === "h2") {
+      elements.push(<p key={j} className="font-bold text-gray-900 text-base mt-3 mb-1"><InlineMarkdown text={tok.content} /></p>);
+      j++; continue;
+    }
+    if (tok.type === "h3") {
+      elements.push(<p key={j} className="font-semibold text-gray-800 text-sm mt-2 mb-0.5"><InlineMarkdown text={tok.content} /></p>);
+      j++; continue;
+    }
+    if (tok.type === "h4") {
+      elements.push(<p key={j} className="font-semibold text-gray-700 text-sm mt-1"><InlineMarkdown text={tok.content} /></p>);
+      j++; continue;
+    }
+
+    if (tok.type === "hr") {
+      elements.push(<hr key={j} className="border-gray-300 my-2" />);
+      j++; continue;
+    }
+
+    if (tok.type === "code_block") {
+      elements.push(
+        <pre key={j} className="bg-gray-800 text-green-300 text-xs rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap my-1">
+          {tok.content}
+        </pre>
+      );
+      j++; continue;
+    }
+
+    // Group bullet items
+    if (tok.type === "bullet") {
+      const items: { content: string; depth: number }[] = [];
+      while (j < tokens.length && tokens[j].type === "bullet") {
+        const t = tokens[j] as { type: "bullet"; content: string; depth: number };
+        items.push({ content: t.content, depth: t.depth });
+        j++;
+      }
+      elements.push(
+        <ul key={`ul-${j}`} className="list-disc list-inside space-y-1 pl-2 my-1">
+          {items.map((item, k) => (
+            <li key={k} className="text-sm leading-relaxed" style={{ paddingLeft: item.depth * 12 }}>
+              <InlineMarkdown text={item.content} />
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // Group numbered items
+    if (tok.type === "numbered") {
+      const items: string[] = [];
+      while (j < tokens.length && tokens[j].type === "numbered") {
+        items.push((tokens[j] as { type: "numbered"; content: string; num: number }).content);
+        j++;
+      }
+      elements.push(
+        <ol key={`ol-${j}`} className="list-decimal list-inside space-y-1 pl-2 my-1">
+          {items.map((item, k) => (
+            <li key={k} className="text-sm leading-relaxed">
+              <InlineMarkdown text={item} />
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    // Plain text
+    if (tok.type === "text") {
+      elements.push(
+        <p key={j} className="text-sm leading-relaxed">
+          <InlineMarkdown text={tok.content} />
+        </p>
+      );
+      j++; continue;
+    }
+
+    j++;
+  }
+
+  return <div className="space-y-1">{elements}</div>;
 }
 
 function InlineMarkdown({ text }: { text: string }) {
