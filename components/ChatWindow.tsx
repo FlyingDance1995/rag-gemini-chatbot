@@ -310,7 +310,7 @@ export default function ChatWindow({ chatId, initialMessages = [] }: ChatWindowP
             <div className="text-6xl mb-4">✨</div>
             <h2 className="text-xl font-semibold text-gray-700 mb-2">Xin chào!</h2>
             <p className="text-sm max-w-sm">
-              Hỏi tôi bất cứ điều gì về tài liệu bạn đã upload.
+              Hỏi tôi bất cứ điều gì.
             </p>
           </div>
         )}
