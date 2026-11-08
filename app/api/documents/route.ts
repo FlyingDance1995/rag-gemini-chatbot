@@ -114,20 +114,28 @@ export async function POST(req: NextRequest) {
         const chunkRows = await embedBatch(chunks);
 
         // Persist in single transaction
-        const doc = await prisma.$transaction(async (tx) => {
-          const document = await tx.document.create({
-            data: { userId, filename, fileType },
-          });
+        // Use generous timeouts: embedBatch can take many seconds for large PDFs,
+        // and inserting many chunks sequentially can exceed Prisma's 5 s default.
+        const doc = await prisma.$transaction(
+          async (tx) => {
+            const document = await tx.document.create({
+              data: { userId, filename, fileType },
+            });
 
-          for (const { content, vectorLiteral } of chunkRows) {
-            await tx.$executeRaw`
-              INSERT INTO "Chunk" ("id","documentId","userId","content","embedding","createdAt")
-              VALUES (${createId()}, ${document.id}, ${userId}, ${content}, ${vectorLiteral}::vector, now())
-            `;
+            for (const { content, vectorLiteral } of chunkRows) {
+              await tx.$executeRaw`
+                INSERT INTO "Chunk" ("id","documentId","userId","content","embedding","createdAt")
+                VALUES (${createId()}, ${document.id}, ${userId}, ${content}, ${vectorLiteral}::vector, now())
+              `;
+            }
+
+            return document;
+          },
+          {
+            maxWait: 10_000,  // wait up to 10 s to acquire a connection
+            timeout: 60_000,  // allow up to 60 s for the transaction to complete
           }
-
-          return document;
-        });
+        );
 
         return { filename, status: "ok" as const, documentId: doc.id };
       } catch (err) {
